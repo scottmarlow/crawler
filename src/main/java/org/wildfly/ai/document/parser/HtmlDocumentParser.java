@@ -28,14 +28,20 @@ import org.wildfly.ai.document.loader.WildFlyHtmlContent;
 public class HtmlDocumentParser {
 
     public List<TextSegment> parsePage(WildFlyHtmlContent content, String cssSelector) {
+        String selector = (cssSelector == null || cssSelector.isBlank()) ? "*" : cssSelector;
         List<TextSegment> segments = new ArrayList<>();
         try {
             Document htmlDoc = Jsoup.parse(content.getPath().toFile());
-            if (isStructured(htmlDoc, cssSelector)) {
-                for (Element elt : htmlDoc.select(cssSelector)) {
+            if (isStructured(htmlDoc, selector)) {
+                for (Element elt : htmlDoc.select(selector)) {
                     NodeVisitor visitor = new TextExtractingVisitor();
                     NodeTraversor.traverse(visitor, elt);
-                    segments.add(new TextSegment(visitor.toString(), content.metadata()));
+                    String text = visitor.toString();
+                    if (text != null && !text.isBlank()) {
+                        System.out.println("********************************************************************************************************************************************************************");
+                        System.out.println(text);
+                        segments.add(new TextSegment(text, content.metadata()));
+                    }
                 }
             }
             htmlDoc.traverse(new TextExtractingVisitor());

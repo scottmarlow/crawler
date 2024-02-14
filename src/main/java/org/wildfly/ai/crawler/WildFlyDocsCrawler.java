@@ -75,7 +75,7 @@ public class WildFlyDocsCrawler extends WebCrawler {
                 createdPath = Files.write(path.resolve("index.html"), page.getContentData());
             } else {
                 Files.createDirectories(path.getParent());
-                String fileName = path.getFileName().toString();
+                String fileName = path.getFileName().toString().toLowerCase(Locale.ENGLISH);
                 if (fileName.indexOf('.') < 0) {
                     path = path.resolveSibling(fileName + ".html");
                 }
