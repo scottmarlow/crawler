@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.wildfly.ai.crawler.WildFlyDocsCrawler;
 import org.wildfly.ai.document.parser.HtmlDocumentParser;
+import org.wildfly.ai.embedding.EmbeddingStoreFactory;
 
 /**
  *
@@ -72,15 +73,7 @@ public class Crawler {
                 .maxRetries(20)
                 .timeout(Duration.ofSeconds(500))
                 .build();
-        embed(myDocs, embeddingModel);
-    }
-
-    private static EmbeddingStore<TextSegment> embed(List<TextSegment> segments, EmbeddingModel embeddingModel) {
-        List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
-
-        EmbeddingStore<TextSegment> embeddingStore = new InMemoryEmbeddingStore<>();
-        embeddingStore.addAll(embeddings, segments);
-        return embeddingStore;
+        EmbeddingStoreFactory.createEmbeddingStore(myDocs, embeddingModel);
     }
 
     private static CrawlController createController(String name, String baseUrl) throws Exception {
