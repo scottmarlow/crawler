@@ -58,7 +58,7 @@ public class Crawler {
         List<TextSegment> myDocs = new ArrayList<>(contents.size());
 
         for (WildFlyHtmlContent content : contents) {
-            myDocs.addAll(parser.parsePage(content, ".paragraph,.content"));
+            myDocs.addAll(parser.parsePage(content, ".paragraph,.content", "h1"));
         }
 
         contents.clear();
@@ -71,7 +71,7 @@ public class Crawler {
         controller.shutdown();
         
         for (WildFlyHtmlContent content : contents) {
-            myDocs.addAll(parser.parsePage(content, ".paragraph,.content,h1,h2,h3,h4,h5"));
+            myDocs.addAll(parser.parsePage(content, ".paragraph,.content,h1,h2,h3,h4,h5", "h1"));
         }
         myDocs.forEach(seg -> System.out.println("Segment " + seg));
     }

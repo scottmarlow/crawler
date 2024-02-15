@@ -27,11 +27,12 @@ import org.wildfly.ai.document.loader.WildFlyHtmlContent;
  */
 public class HtmlDocumentParser {
 
-    public List<TextSegment> parsePage(WildFlyHtmlContent content, String cssSelector) {
+    public List<TextSegment> parsePage(WildFlyHtmlContent content, String cssSelector, String parentSelector) {
         String selector = (cssSelector == null || cssSelector.isBlank()) ? "*" : cssSelector;
         List<TextSegment> segments = new ArrayList<>();
         try {
             Document htmlDoc = Jsoup.parse(content.getPath().toFile());
+            String title = htmlDoc.title();
             if (isStructured(htmlDoc, selector)) {
                 for (Element elt : htmlDoc.select(selector)) {
                     NodeVisitor visitor = new TextExtractingVisitor();
@@ -39,7 +40,17 @@ public class HtmlDocumentParser {
                     String text = visitor.toString();
                     if (text != null && !text.isBlank()) {
                         System.out.println("********************************************************************************************************************************************************************");
+                        System.out.println(elt);
+                        System.out.println("######");
                         System.out.println(text);
+                        Metadata metadata = content.metadata().copy();
+                        if(title != null) {
+                            metadata.add("title", title);
+                        }
+                        Element parent = elt.closest(parentSelector);
+                        if(parent != null && parent.ownText() != null) {
+                            metadata.add("subtitle", parent.ownText());
+                        }
                         segments.add(new TextSegment(text, content.metadata()));
                     }
                 }
@@ -69,6 +80,9 @@ public class HtmlDocumentParser {
             } else if (name.equals("dt")) {
                 textBuilder.append("  ");
             } else if (in(name, "p", "h1", "h2", "h3", "h4", "h5", "h6", "tr")) {
+                if(node.hasParent() && "li".equals(node.parentNode().nodeName())) {
+                    return;
+                }
                 textBuilder.append("\n");
             }
         }
