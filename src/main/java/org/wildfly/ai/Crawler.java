@@ -7,9 +7,12 @@ package org.wildfly.ai;
 import org.wildfly.ai.document.loader.WildFlyHtmlContent;
 import crawlercommons.filters.basic.BasicURLNormalizer;
 import de.hshn.mi.crawler4j.frontier.HSQLDBFrontierConfiguration;
-import dev.langchain4j.data.document.Document;
-import dev.langchain4j.data.document.transformer.HtmlTextExtractor;
+import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.ollama.OllamaEmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.CrawlController;
 import edu.uci.ics.crawler4j.fetcher.PageFetcher;
@@ -18,11 +21,9 @@ import edu.uci.ics.crawler4j.robotstxt.RobotstxtConfig;
 import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
 import java.io.File;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.wildfly.ai.crawler.WildFlyDocsCrawler;
 import org.wildfly.ai.document.parser.HtmlDocumentParser;
 
@@ -41,15 +42,7 @@ public class Crawler {
         final String baseUrl = "https://docs.wildfly.org/";
         final int numCrawlers = 12;
         final List<WildFlyHtmlContent> contents = new ArrayList<>();
-        Map<String, String> metadataCssSelectors = new HashMap<>();
-        metadataCssSelectors.put("title", "title");
-        metadataCssSelectors.put("h1", "h1");
-        metadataCssSelectors.put("h2", "h2");
-        metadataCssSelectors.put("h3", "h3");
-        metadataCssSelectors.put("h5", "h5");
-        HtmlTextExtractor extractor = new HtmlTextExtractor(".paragraph,.content,h1,h2,h3,h4,h5", metadataCssSelectors, false);
-        Set<String> classes = Set.of("paragraph", "content");
-        HtmlDocumentParser parser = new  HtmlDocumentParser();
+        HtmlDocumentParser parser = new HtmlDocumentParser();
         // Instantiate the controller for this crawl 
         CrawlController controller = createController("docs", baseUrl);
         CrawlController.WebCrawlerFactory<WildFlyDocsCrawler> factory = () -> new WildFlyDocsCrawler(basePath, baseUrl, contents);
@@ -58,7 +51,7 @@ public class Crawler {
         List<TextSegment> myDocs = new ArrayList<>(contents.size());
 
         for (WildFlyHtmlContent content : contents) {
-            myDocs.addAll(parser.parsePage(content, ".paragraph,.content", "h1"));
+            myDocs.addAll(parser.parsePage(content, ".paragraph,.content", "h2"));
         }
 
         contents.clear();
@@ -69,11 +62,25 @@ public class Crawler {
         controller.addSeed(wfBaseUrl);
         controller.start(factory, numCrawlers);
         controller.shutdown();
-        
+
         for (WildFlyHtmlContent content : contents) {
-            myDocs.addAll(parser.parsePage(content, ".paragraph,.content,h1,h2,h3,h4,h5", "h1"));
+            myDocs.addAll(parser.parsePage(content, ".paragraph,.content", "h2"));
         }
-        myDocs.forEach(seg -> System.out.println("Segment " + seg));
+        EmbeddingModel embeddingModel = new OllamaEmbeddingModel.OllamaEmbeddingModelBuilder()
+                .baseUrl("http://ollama-mchomaredhatcom.apps.ai-hackathon.qic7.p1.openshiftapps.com")
+                .modelName("mistral:latest")
+                .maxRetries(20)
+                .timeout(Duration.ofSeconds(500))
+                .build();
+        embed(myDocs, embeddingModel);
+    }
+
+    private static EmbeddingStore<TextSegment> embed(List<TextSegment> segments, EmbeddingModel embeddingModel) {
+        List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
+
+        EmbeddingStore<TextSegment> embeddingStore = new InMemoryEmbeddingStore<>();
+        embeddingStore.addAll(embeddings, segments);
+        return embeddingStore;
     }
 
     private static CrawlController createController(String name, String baseUrl) throws Exception {
