@@ -90,7 +90,7 @@ public class WildFlyHtmlContent implements DocumentSource {
         Metadata metadata = new Metadata();
         metadata.add("url", getUrl());
         metadata.add("language", getLanguage());
-        metadata.add("parent_rul", getParentUrl());
+        metadata.add("parent_url", getParentUrl());
         metadata.add("file_name", getPath().getFileName().toString());
         metadata.add("file_path", getPath().toString());
         return metadata;

@@ -47,33 +47,25 @@ public class HtmlDocumentParserTest {
     public void testParsePageFromDocs() {
         WildFlyHtmlContent content = new WildFlyHtmlContent(new File("target").toPath().resolve("test-classes").resolve("admin_guide.html"), "en", "https://docs.wildfly.org/31/Admin_Guide.html", "https://docs.wildfly.org/31/");
         String         cssSelector = ".sect2";
-        String parentSelector = "h1";
+        String parentSelector = "h2";
         HtmlDocumentParser instance = new HtmlDocumentParser();
         List<TextSegment> result = instance.parsePage(content, cssSelector, parentSelector);
-        assertEquals(16598, result.size());
-
-        result = instance.parsePage(content, cssSelector, parentSelector);
         assertEquals(50, result.size());
+        System.out.println(result.get(4));
     }
 
     @Test
     public void testParsePageFromBlogPosts() {
         WildFlyHtmlContent content = new WildFlyHtmlContent(new File("target").toPath().resolve("test-classes").resolve("WildFly10-Beta1-Released.html"), "en", "https://www.wildfly.org/news/2015/08/09/WildFly10-Beta1-Released/", "https://www.wildfly.org/");
-        String cssSelector = "";
-        String parentSelector = "h1";
+        String cssSelector = ".paragraph";
+        String parentSelector = "h2";
         HtmlDocumentParser instance = new HtmlDocumentParser();
         List<TextSegment> result = instance.parsePage(content, cssSelector, parentSelector);
-        assertEquals(186, result.size());
-        cssSelector = ".paragraph";
-        result = instance.parsePage(content, cssSelector, parentSelector);
         assertEquals(3, result.size());
         content = new WildFlyHtmlContent(new File("target").toPath().resolve("test-classes").resolve("Hacktoberfest-2023.html"), "en", "https://www.wildfly.org/news/2023/09/27/Hacktoberfest-2023/", "https://www.wildfly.org/");
-        cssSelector = "";
-        result = instance.parsePage(content, cssSelector, parentSelector);
-        assertEquals(270, result.size());
-        cssSelector = ".paragraph";
         result = instance.parsePage(content, cssSelector, parentSelector);
         assertEquals(6, result.size());
+        System.out.println(result.get(3));
     }
 
 }

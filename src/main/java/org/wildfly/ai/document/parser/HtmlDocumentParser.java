@@ -4,19 +4,17 @@
  */
 package org.wildfly.ai.document.parser;
 
-import com.helger.css.decl.CSSSelector;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
-import static java.lang.String.format;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import org.jsoup.Jsoup;
 import static org.jsoup.internal.StringUtil.in;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
+import org.jsoup.select.Elements;
 import org.jsoup.select.NodeTraversor;
 import org.jsoup.select.NodeVisitor;
 import org.wildfly.ai.document.loader.WildFlyHtmlContent;
@@ -32,26 +30,31 @@ public class HtmlDocumentParser {
         List<TextSegment> segments = new ArrayList<>();
         try {
             Document htmlDoc = Jsoup.parse(content.getPath().toFile());
+            Elements parents = htmlDoc.select(parentSelector + "," + selector);
             String title = htmlDoc.title();
             if (isStructured(htmlDoc, selector)) {
+
                 for (Element elt : htmlDoc.select(selector)) {
                     NodeVisitor visitor = new TextExtractingVisitor();
                     NodeTraversor.traverse(visitor, elt);
                     String text = visitor.toString();
                     if (text != null && !text.isBlank()) {
-                        System.out.println("********************************************************************************************************************************************************************");
-                        System.out.println(elt);
-                        System.out.println("######");
-                        System.out.println(text);
                         Metadata metadata = content.metadata().copy();
-                        if(title != null) {
+                        if (title != null) {
                             metadata.add("title", title);
                         }
-                        Element parent = elt.closest(parentSelector);
-                        if(parent != null && parent.ownText() != null) {
-                            metadata.add("subtitle", parent.ownText());
+                        boolean found = false;
+                        for (int i = parents.size() - 1; i >= 0; i--) {
+                            Element parent = parents.get(i);
+                            if (elt.equals(parent)) {
+                                found = true;
+                            }
+                            if (found && parent.is(parentSelector)) {
+                                metadata.add("subtitle", parent.text());
+                                break;
+                            }
                         }
-                        segments.add(new TextSegment(text, content.metadata()));
+                        segments.add(new TextSegment(text, metadata));
                     }
                 }
             }
@@ -80,7 +83,7 @@ public class HtmlDocumentParser {
             } else if (name.equals("dt")) {
                 textBuilder.append("  ");
             } else if (in(name, "p", "h1", "h2", "h3", "h4", "h5", "h6", "tr")) {
-                if(node.hasParent() && "li".equals(node.parentNode().nodeName())) {
+                if (node.hasParent() && "li".equals(node.parentNode().nodeName())) {
                     return;
                 }
                 textBuilder.append("\n");
