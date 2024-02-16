@@ -5,12 +5,9 @@
 package org.wildfly.ai.embedding;
 
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.memory.ChatMemory;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -38,6 +35,7 @@ import org.wildfly.ai.document.parser.HtmlDocumentParser;
  */
 public class EmbeddingTestCase {
 
+    public static final String OPENAI_KEY = "demo";
     /**
      * Test of parsePage method, of class HtmlDocumentParser.
      */
@@ -66,20 +64,31 @@ public class EmbeddingTestCase {
                 .minScore(0.5) // we want to retrieve segments at least somewhat similar to user query
                 .build();
 
-        //String ollamaUrl = "http://localhost:11434";
-        String ollamaUrl = "http://ollama-mchomaredhatcom.apps.ai-hackathon.qic7.p1.openshiftapps.com";
+        String ollamaUrl = "http://localhost:11434";
+        String modelName = "mistral:7b-text-q2_K";
+
+//        String ollamaUrl = "http://ollama-mchomaredhatcom.apps.ai-hackathon.qic7.p1.openshiftapps.com";
+//        String modelName = "7b-text-q2_Kchat";
 
         ChatLanguageModel model = OllamaChatModel.builder()
                 .baseUrl(ollamaUrl)
-                .modelName("mistral:7b")
-                .timeout(Duration.ofSeconds(90))
+                .modelName(modelName)
+                .timeout(Duration.ofSeconds(210))
                 .build();
+        
+//        ChatLanguageModel model = OpenAiChatModel
+//                .builder()
+//                .apiKey(OPENAI_KEY)
+//                .maxRetries(5)
+//                .modelName(OpenAiChatModelName.GPT_3_5_TURBO)
+//                .logRequests(Boolean.TRUE)
+//                .logResponses(Boolean.TRUE)
+//                .build();
 
-        String prompt = "How do I set up a ConnectionFactory to a remote broker ?";
+        String prompt = "How do I set up a ConnectionFactory to a remote jms broker ?";
         List<Content> ragContents = contentRetriever.retrieve(Query.from(prompt));
 
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(UserMessage.from(prompt));
         
         SystemMessage systemMessage = SystemMessage.systemMessage("You are a wildfly expert who understands well how to administrate the wildfly server and its components");
         String completePrompt = "Objective: answer the user question delimited by  ---\n"
@@ -89,11 +98,13 @@ public class EmbeddingTestCase {
                 + "---"
                 + "\n Here is a few data to help you:\n"
                 + "";
-        StringBuilder messageBuilder = new StringBuilder(String.format(completePrompt, prompt));
+        String basePrompt = String.format(completePrompt, prompt);
+        StringBuilder messageBuilder = new StringBuilder(basePrompt);
         for (Content ragContent : ragContents) {
             messageBuilder.append(ragContent.textSegment().text());
         }
-        System.out.println("Answer " + model.generate(systemMessage, UserMessage.from(messageBuilder.toString())).content().text());
+        
+        System.out.println("Answer " + model.generate(systemMessage, UserMessage.from(messageBuilder.toString().substring(0, 4096))).content().text());
         //        AiServices.builder(CustomerSupportAgent.class)
         //                .chatLanguageModel(chatModel)
         //                .contentRetriever(contentRetriever)
