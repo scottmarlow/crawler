@@ -66,6 +66,10 @@ public class EmbeddingTestCase {
 
         String ollamaUrl = "http://localhost:11434";
         String modelName = "mistral:7b-text-q2_K";
+        modelName = "mistral:7b-instruct-v0.2-q2_K";
+
+
+
 
 //        String ollamaUrl = "http://ollama-mchomaredhatcom.apps.ai-hackathon.qic7.p1.openshiftapps.com";
 //        String modelName = "7b-text-q2_Kchat";
